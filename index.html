@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Monitoring Pengisian Kuesioner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+        }
+        .sidebar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        .sidebar::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera */
+        }
+        .active-satker {
+            background-color: #e0e7ff;
+            color: #3730a3;
+            font-weight: 600;
+        }
+        /* Style for scrollbar in modal */
+        #progress-modal-list::-webkit-scrollbar {
+            width: 8px;
+        }
+        #progress-modal-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        #progress-modal-list::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        #progress-modal-list::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="flex h-screen bg-gray-100">
+        <!-- Sidebar -->
+        <aside class="w-80 bg-white shadow-md flex flex-col sidebar overflow-y-auto">
+            <div class="p-6 border-b">
+                <h1 class="text-xl font-bold text-gray-800">Monitoring Kuesioner</h1>
+                <p class="text-sm text-gray-500">Provinsi Sumatera Utara</p>
+            </div>
+            <!-- Info Penelitian -->
+            <div class="p-4 border-b text-center bg-gray-50">
+                <p class="text-sm font-semibold text-gray-700">Kuesioner Penelitian</p>
+                <p class="text-sm font-medium text-indigo-600">Eirene Debora Simanullang</p>
+                <p class="text-xs text-gray-500">(BPS Kabupaten Toba Samosir)</p>
+            </div>
+            <!-- Tombol Home -->
+            <div class="p-4 border-b">
+                <button id="home-button" class="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                    Home / Dashboard
+                </button>
+            </div>
+            <nav id="satker-list" class="flex-1 p-4 space-y-2">
+                <!-- Daftar Satuan Kerja akan dimuat di sini oleh JavaScript -->
+                <div class="text-center text-gray-500 py-4">Memuat data...</div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header / Dashboard Stats -->
+            <header class="bg-white shadow-sm p-6 border-b">
+                <h2 id="main-title" class="text-2xl font-bold text-gray-800 mb-4">Ringkasan Progress</h2>
+                <div id="stats-container" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Statistik akan dimuat di sini -->
+                </div>
+            </header>
+
+            <!-- Respondent List -->
+            <div class="flex-1 p-6 overflow-y-auto">
+                <div id="respondent-container" class="bg-white p-6 rounded-lg shadow">
+                    <h3 id="respondent-title" class="text-xl font-semibold mb-4 text-gray-700">Selamat Datang di Dasbor Monitoring</h3>
+                    <div id="respondent-list" class="divide-y divide-gray-200">
+                       <!-- Pesan Awal atau Daftar Responden -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <footer class="text-center p-4 text-xs text-gray-500">
+                © 2025 Tim Layanan Pengembangan Kompetensi dan Hukum
+                <br>
+                BPS Provinsi Sumatera Utara
+            </footer>
+        </main>
+    </div>
+
+    <!-- Modal for Form Link -->
+    <div id="upload-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full">
+            <h3 class="text-xl font-bold mb-4">Lanjutkan Pengisian Form</h3>
+            <p class="mb-2">Anda akan diarahkan ke Google Form untuk mengisi kuesioner.</p>
+            <p class="mb-6 text-sm text-gray-600">Responden: <strong id="modal-respondent-name"></strong></p>
+            <div class="flex justify-end space-x-4">
+                <button onclick="closeModal()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400">Batal</button>
+                <a id="gform-link" href="#" target="_blank" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Lanjutkan ke Form</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Progress Details -->
+    <div id="progress-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-2xl w-full flex flex-col" style="max-height: 90vh;">
+            <div class="flex justify-between items-center mb-4 border-b pb-3">
+                <h3 id="progress-modal-title" class="text-xl font-bold text-gray-800"></h3>
+                <button onclick="closeProgressModal()" class="text-gray-400 hover:text-gray-800">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div id="progress-modal-list" class="flex-1 overflow-y-auto pr-2">
+                <!-- List of names will be injected here -->
+            </div>
+            <div class="mt-6 text-right border-t pt-4">
+                <button onclick="closeProgressModal()" class="px-5 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- DATA RESPONDEN ---
+        const respondents = [
+          { name: 'Lita Chintia Murti', satker: 'BPS Kab. Asahan' },
+          { name: 'Dwi Ningsih', satker: 'BPS Kab. Asahan' },
+          { name: 'Asnita Naik Harianja', satker: 'BPS Kab. Asahan' },
+          { name: 'Muliati', satker: 'BPS Kab. Asahan' },
+          { name: 'Asthry Fiedle Renovard Tamba', satker: 'BPS Kab. Asahan' },
+          { name: 'Juni Artha Sidabutar', satker: 'BPS Kab. Asahan' },
+          { name: 'Mirna Chairany', satker: 'BPS Kab. Asahan' },
+          { name: 'Laila Syafrita Siregar', satker: 'BPS Kab. Batu Bara' },
+          { name: 'Monalisa Sipahutar', satker: 'BPS Kab. Batu Bara' },
+          { name: 'Ervina D. F. Ginting', satker: 'BPS Kab. Batu Bara' },
+          { name: 'Uli Damayanti Sitanggang', satker: 'BPS Kab. Batu Bara' },
+          { name: 'Rafemi Meisya Ulda', satker: 'BPS Kab. Batu Bara' },
+          { name: 'Rizka Maulida Yanti', satker: 'BPS Kab. Batu Bara' },
+          { name: 'Maireza Br Ginting', satker: 'BPS Kab. Batu Bara' },
+          { name: 'Tiara Lumban Tobing', satker: 'BPS Kab. Batu Bara' },
+          { name: 'Emmi Manurung', satker: 'BPS Kab. Dairi' },
+          { name: 'Jesica Kristiyani Butar Butar', satker: 'BPS Kab. Dairi' },
+          { name: 'Marisi Theresa E.D.', satker: 'BPS Kab. Dairi' },
+          { name: 'Ribka Anggina Tarigan', satker: 'BPS Kab. Dairi' },
+          { name: 'Frisca Ulina Br Munthe', satker: 'BPS Kab. Dairi' },
+          { name: 'Sahnas Aisyiah Maha', satker: 'BPS Kab. Dairi' },
+          { name: 'Listra Debora Br Ketaren', satker: 'BPS Kab. Deli Serdang' },
+          { name: 'lana Konpentina', satker: 'BPS Kab. Deli Serdang' },
+          { name: 'Yuni Hariati', satker: 'BPS Kab. Deli Serdang' },
+          { name: 'Henny Agustina Siagian', satker: 'BPS Kab. Deli Serdang' },
+          { name: 'Lasri Afrianyta Sirait', satker: 'BPS Kab. Deli Serdang' },
+          { name: 'Nurita Intan Afri Yanti Sitorus', satker: 'BPS Kab. Deli Serdang' },
+          { name: 'Dara Nurhabibi Dheshah', satker: 'BPS Kab. Deli Serdang' },
+          { name: 'Dora Febriana Napitupulu', satker: 'BPS Kab. Deli Serdang' },
+          { name: 'Jemina Jesika Manalu', satker: 'BPS Kab. Deli Serdang' },
+          { name: 'Maria Kesuma Marpaung', satker: 'BPS Kab. Humbang Hasundutan' },
+          { name: 'Rotua Krisnawaty', satker: 'BPS Kab. Humbang Hasundutan' },
+          { name: 'Paskah Ulina Hasugian', satker: 'BPS Kab. Humbang Hasundutan' },
+          { name: 'Audina Juliasih Sitorus', satker: 'BPS Kab. Humbang Hasundutan' },
+          { name: 'Wana Melia Simbolon', satker: 'BPS Kab. Humbang Hasundutan' },
+          { name: 'Josse Ovelia Br Purba', satker: 'BPS Kab. Humbang Hasundutan' },
+          { name: 'Finer Mayland Sirait', satker: 'BPS Kab. Humbang Hasundutan' },
+          { name: 'Ratnauli Naibaho', satker: 'BPS Kab. Karo' },
+          { name: 'Fitriani Br.Sagala', satker: 'BPS Kab. Karo' },
+          { name: 'Buana B. Simarmata', satker: 'BPS Kab. Karo' },
+          { name: 'Yulia Vertina Napitupulu', satker: 'BPS Kab. Karo' },
+          { name: 'Kristin Natalia Sitorus', satker: 'BPS Kab. Karo' },
+          { name: 'Tetty Florentina Br Bukit', satker: 'BPS Kab. Karo' },
+          { name: 'Elia Rosa Ginting', satker: 'BPS Kab. Karo' },
+          { name: 'Marlina Naibaho', satker: 'BPS Kab. Labuhan Batu' },
+          { name: 'Sartika Ekawati', satker: 'BPS Kab. Labuhan Batu' },
+          { name: 'Laila Qadarsih', satker: 'BPS Kab. Labuhan Batu' },
+          { name: 'Khoiriyah', satker: 'BPS Kab. Labuhan Batu' },
+          { name: 'Dwina Wardhani Nasution', satker: 'BPS Kab. Labuhan Batu' },
+          { name: 'Yunia Rohana S. Pinem', satker: 'BPS Kab. Labuhan Batu' },
+          { name: 'Alisha Azri Khairani', satker: 'BPS Kab. Labuhan Batu' },
+          { name: 'Lely Yunita Sari Dalimunte', satker: 'BPS Kab. Labuhan Batu Selatan' },
+          { name: 'Ervina Jayanti Siagian', satker: 'BPS Kab. Labuhan Batu Selatan' },
+          { name: 'Fitri Noor Hikmah', satker: 'BPS Kab. Labuhan Batu Selatan' },
+          { name: 'Kandita Abdina', satker: 'BPS Kab. Labuhan Batu Selatan' },
+          { name: 'Deliana Derita Bulolo', satker: 'BPS Kab. Labuhan Batu Utara' },
+          { name: 'Khairun Nisa', satker: 'BPS Kab. Labuhan Batu Utara' },
+          { name: 'Devi Nadia Limbong', satker: 'BPS Kab. Labuhan Batu Utara' },
+          { name: 'Chandra Onita Situmorang', satker: 'BPS Kab. Labuhan Batu Utara' },
+          { name: 'Paulina Siallagan', satker: 'BPS Kab. Labuhan Batu Utara' },
+          { name: 'Tita Novita', satker: 'BPS Kab. Langkat' },
+          { name: 'Selli Piawai Br. Bangun', satker: 'BPS Kab. Langkat' },
+          { name: 'Angdesy Meilynda Nababan', satker: 'BPS Kab. Langkat' },
+          { name: 'Yulia Nur Jannah', satker: 'BPS Kab. Langkat' },
+          { name: 'Deby Novita Sari', satker: 'BPS Kab. Langkat' },
+          { name: 'Nadya Yantieka', satker: 'BPS Kab. Langkat' },
+          { name: 'Liza Aufia Utami Br Ginting', satker: 'BPS Kab. Langkat' },
+          { name: 'Vera Catrin Sari Uli Simarmata', satker: 'BPS Kab. Langkat' },
+          { name: 'Eny Berty Br Ginting', satker: 'BPS Kab. Langkat' },
+          { name: 'Adelina', satker: 'BPS Kab. Mandailing Natal' },
+          { name: 'Uky Soraya Lubis', satker: 'BPS Kab. Mandailing Natal' },
+          { name: 'Anna Dalilah Lubis', satker: 'BPS Kab. Mandailing Natal' },
+          { name: 'Ingrid Claudia Gultom', satker: 'BPS Kab. Mandailing Natal' },
+          { name: 'Dewi Lestari', satker: 'BPS Kab. Mandailing Natal' },
+          { name: 'Angel Rizky Sheren Manurung', satker: 'BPS Kab. Mandailing Natal' },
+          { name: 'Shafira Nuraulia', satker: 'BPS Kab. Mandailing Natal' },
+          { name: 'Gusnaini Zain', satker: 'BPS Kab. Nias' },
+          { name: 'Yusnidar Zebua', satker: 'BPS Kab. Nias' },
+          { name: 'Alfrince Sonifati Hulu', satker: 'BPS Kab. Nias' },
+          { name: 'Geni Andalria Harefa', satker: 'BPS Kab. Nias' },
+          { name: 'Elvira Naftali Anastasya Sitinjak', satker: 'BPS Kab. Nias' },
+          { name: 'Ratnasari Dewi Sarumaha', satker: 'BPS Kab. Nias Selatan' },
+          { name: 'Ika Maya Sari Hutasoit', satker: 'BPS Kab. Nias Selatan' },
+          { name: 'Margaret Janice Waruwu', satker: 'BPS Kab. Nias Utara' },
+          { name: 'Uswatun Hasanah', satker: 'BPS Kab. Padang Lawas' },
+          { name: 'Marta Desna Fitria Br. Lumban Gaol', satker: 'BPS Kab. Padang Lawas' },
+          { name: 'Verga Herviana Lucya Hariani', satker: 'BPS Kab. Padang Lawas' },
+          { name: 'Maria Retno Febriana', satker: 'BPS Kab. Padang Lawas' },
+          { name: 'Zulhijjah Sriana', satker: 'BPS Kab. Padang Lawas Utara' },
+          { name: 'Nur Ajizah Harahap', satker: 'BPS Kab. Padang Lawas Utara' },
+          { name: 'Rizka Suhaiffah', satker: 'BPS Kab. Padang Lawas Utara' },
+          { name: 'Yohana Manalu', satker: 'BPS Kab. Padang Lawas Utara' },
+          { name: 'Siti Rahma Damanik', satker: 'BPS Kab. Pakpak Bharat' },
+          { name: 'Itonar Melfia Parbuktian Bakkara', satker: 'BPS Kab. Pakpak Bharat' },
+          { name: 'Indah Miranda A. S', satker: 'BPS Kab. Pakpak Bharat' },
+          { name: 'Marina Tika Sari Br Ginting', satker: 'BPS Kab. Pakpak Bharat' },
+          { name: 'Priscilia Ervina Sihombing', satker: 'BPS Kab. Pakpak Bharat' },
+          { name: 'Devitanorani Saragih', satker: 'BPS Kab. Samosir' },
+          { name: 'Indah Febri Putri Nainggolan', satker: 'BPS Kab. Samosir' },
+          { name: 'Salvini Iriani Barus', satker: 'BPS Kab. Samosir' },
+          { name: 'Surya Ningsih Ritonga', satker: 'BPS Kab. Samosir' },
+          { name: 'Apriyani Maristella Sinurat', satker: 'BPS Kab. Samosir' },
+          { name: 'Sri Dewi', satker: 'BPS Kab. Serdang Bedagai' },
+          { name: 'Rina Ariyanti Siregar', satker: 'BPS Kab. Serdang Bedagai' },
+          { name: 'Zakiah Harahap', satker: 'BPS Kab. Serdang Bedagai' },
+          { name: 'Juita Endang Jaya Purba', satker: 'BPS Kab. Serdang Bedagai' },
+          { name: 'Muinah', satker: 'BPS Kab. Serdang Bedagai' },
+          { name: 'Imanda Yunita Sitorus', satker: 'BPS Kab. Serdang Bedagai' },
+          { name: 'Rut Meliana Nirmala Nadapdap', satker: 'BPS Kab. Serdang Bedagai' },
+          { name: 'Alvera Siburian', satker: 'BPS Kab. Simalungun' },
+          { name: 'Agustina Dwiana Paripurnaningrum S', satker: 'BPS Kab. Simalungun' },
+          { name: 'Yenny Rindayu', satker: 'BPS Kab. Simalungun' },
+          { name: 'Tarida Christ Natalia S', satker: 'BPS Kab. Simalungun' },
+          { name: 'Amalia Harinda Rahayu', satker: 'BPS Kab. Simalungun' },
+          { name: 'Rolinta Damanik', satker: 'BPS Kab. Simalungun' },
+          { name: 'Novianda Br Ginting', satker: 'BPS Kab. Simalungun' },
+          { name: 'Lely Mariani Rosenta Rajagukguk', satker: 'BPS Kab. Simalungun' },
+          { name: 'Atika Wahyuni', satker: 'BPS Kab. Simalungun' },
+          { name: 'Devita Natalia', satker: 'BPS Kab. Tapanuli Selatan' },
+          { name: 'Hot Nauli Simamora', satker: 'BPS Kab. Tapanuli Selatan' },
+          { name: 'Sri Hartati Selviani Handayani', satker: 'BPS Kab. Tapanuli Selatan' },
+          { name: 'Ravisa Noor', satker: 'BPS Kab. Tapanuli Tengah' },
+          { name: 'Nadila Nur Khaliza', satker: 'BPS Kab. Tapanuli Tengah' },
+          { name: 'Nauli Fitriyanni Nasution', satker: 'BPS Kab. Tapanuli Tengah' },
+          { name: 'Sri Rahayu Yogyana Sinurat', satker: 'BPS Kab. Tapanuli Tengah' },
+          { name: 'Juhenni Putri Sinaga', satker: 'BPS Kab. Tapanuli Tengah' },
+          { name: 'Debora Rosalina Hutapea', satker: 'BPS Kab. Tapanuli Utara' },
+          { name: 'Agustina Anggereni Pardosi', satker: 'BPS Kab. Tapanuli Utara' },
+          { name: 'Tetti Lumbantobing', satker: 'BPS Kab. Tapanuli Utara' },
+          { name: 'Nelli Nurcahaya Tampubolon', satker: 'BPS Kab. Tapanuli Utara' },
+          { name: 'Jannette Rosa Dahlia', satker: 'BPS Kab. Tapanuli Utara' },
+          { name: 'Eunike Sola Gratia', satker: 'BPS Kab. Tapanuli Utara' },
+          { name: 'Elsa Kartika Vitriani Marpaung', satker: 'BPS Kab. Tapanuli Utara' },
+          { name: 'Lestari Butar Butar', satker: 'BPS Kab. Toba Samosir' },
+          { name: 'Fitri Agustina', satker: 'BPS Kab. Toba Samosir' },
+          { name: 'Sartika C.Y. Pardede', satker: 'BPS Kab. Toba Samosir' },
+          { name: 'Valentina Samosir', satker: 'BPS Kab. Toba Samosir' },
+          { name: 'Marissa Sinaga', satker: 'BPS Kab. Toba Samosir' },
+          { name: 'Maria Sintauli Hutauruk', satker: 'BPS Kab. Toba Samosir' },
+          { name: 'Astrid Cindy Astria Pangaribuan', satker: 'BPS Kab. Toba Samosir' },
+          { name: 'Herjani Novira', satker: 'BPS Kab. Toba Samosir' },
+          { name: 'Nina Inda', satker: 'BPS Kota Binjai' },
+          { name: 'Cornelia Tenar Mannita Tarigan', satker: 'BPS Kota Binjai' },
+          { name: 'Deby Ayuningtias', satker: 'BPS Kota Binjai' },
+          { name: 'Deva Apriani Nurul Huda', satker: 'BPS Kota Binjai' },
+          { name: 'Suriasih Diah Ekawati', satker: 'BPS Kota Binjai' },
+          { name: 'Gusnisa Siswayu', satker: 'BPS Kota Binjai' },
+          { name: 'Rahmadani Melia S', satker: 'BPS Kota Binjai' },
+          { name: 'Sulastri Setia Raya Sianturi', satker: 'BPS Kota Binjai' },
+          { name: 'Stela Devi', satker: 'BPS Kota Binjai' },
+          { name: 'Nonifili Febrianty Harefa', satker: 'BPS Kota Gunungsitoli' },
+          { name: 'Trisari Nur Cahaya Zebua', satker: 'BPS Kota Gunungsitoli' },
+          { name: 'Claudia Damaris Br Kaban', satker: 'BPS Kota Gunungsitoli' },
+          { name: 'Rica Purnama Sari Saragih', satker: 'BPS Kota Gunungsitoli' },
+          { name: 'Rohani', satker: 'BPS Kota Medan' },
+          { name: 'Diana Aulia Adnan', satker: 'BPS Kota Medan' },
+          { name: 'Munawati', satker: 'BPS Kota Medan' },
+          { name: 'Soni Sagita Br Purba', satker: 'BPS Kota Medan' },
+          { name: 'Lucia Erna Widyastuti', satker: 'BPS Kota Medan' },
+          { name: 'Artaty Sitanggang', satker: 'BPS Kota Medan' },
+          { name: 'Yenni Santi Florida', satker: 'BPS Kota Medan' },
+          { name: 'Rosinta Sabar Mauli Butar Butar', satker: 'BPS Kota Medan' },
+          { name: 'Donna Clara Butar Butar', satker: 'BPS Kota Medan' },
+          { name: 'Arifah Astining Cahya', satker: 'BPS Kota Medan' },
+          { name: 'Ananda Rizal', satker: 'BPS Kota Medan' },
+          { name: 'Nena I. Sigalingging', satker: 'BPS Kota Medan' },
+          { name: 'Debby Harazaki Harefa', satker: 'BPS Kota Medan' },
+          { name: 'Silvia Hanifah Parinduri', satker: 'BPS Kota Medan' },
+          { name: 'Artha Lucya Siahaan', satker: 'BPS Kota Medan' },
+          { name: 'Fitri Ajarina Br Ginting', satker: 'BPS Kota Padangsidimpuan' },
+          { name: 'Margareth Saurma Pardomuan Silitonga', satker: 'BPS Kota Padangsidimpuan' },
+          { name: 'Nani Agustina', satker: 'BPS Kota Padangsidimpuan' },
+          { name: 'Adelina Nasution', satker: 'BPS Kota Padangsidimpuan' },
+          { name: 'Indah Komala Sari Siregar', satker: 'BPS Kota Padangsidimpuan' },
+          { name: 'Narwastu Ningthias', satker: 'BPS Kota Padangsidimpuan' },
+          { name: 'Wahyu Andamari', satker: 'BPS Kota Pematang Siantar' },
+          { name: 'Irene Imelda J. Silaban', satker: 'BPS Kota Pematang Siantar' },
+          { name: 'Bernadetta Yoshinta Kusumawardhani', satker: 'BPS Kota Pematang Siantar' },
+          { name: 'Eiren Royana Siahaan', satker: 'BPS Kota Pematang Siantar' },
+          { name: 'Rista Rida Sinurat', satker: 'BPS Kota Pematang Siantar' },
+          { name: 'Kristy Oktavia Sinaga', satker: 'BPS Kota Pematang Siantar' },
+          { name: 'Eska Venasari Lubis', satker: 'BPS Kota Pematang Siantar' },
+          { name: 'Rosmiana Hasibuan', satker: 'BPS Kota Sibolga' },
+          { name: 'Nolla Claudia Br Ginting', satker: 'BPS Kota Sibolga' },
+          { name: 'Salsabila Ananda Putri', satker: 'BPS Kota Sibolga' },
+          { name: 'Vifi Yusnita Purba', satker: 'BPS Kota Sibolga' },
+          { name: 'Netty Marlyna Situmorang', satker: 'BPS Kota Tanjung Balai' },
+          { name: 'Siti Hadijah', satker: 'BPS Kota Tanjung Balai' },
+          { name: 'Meutia Rahmah Yani Hutasuhut', satker: 'BPS Kota Tanjung Balai' },
+          { name: 'Isnaini Zulhusna', satker: 'BPS Kota Tanjung Balai' },
+          { name: 'Siti Maryam', satker: 'BPS Kota Tanjung Balai' },
+          { name: 'Silvia Nancy', satker: 'BPS Kota Tebing Tinggi' },
+          { name: 'Marupa Hasilowaty Situmorang', satker: 'BPS Kota Tebing Tinggi' },
+          { name: 'Elina Maisyarah', satker: 'BPS Kota Tebing Tinggi' },
+          { name: 'Didang Sri Erkata Silalahi', satker: 'BPS Kota Tebing Tinggi' },
+          { name: 'Nancy P. Simbolon', satker: 'BPS Kota Tebing Tinggi' },
+          { name: 'Rohita Chairani Siregar', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Lidia Harni Pratiwi Aceh', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Aulia Mufridah', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Nurbaiti', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Sri Juliana Siburian', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Srylinda Murni Pasaribu', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Emilza Rahmadhani', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Reny Ari Noviyanti', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Evi Sinta Gabe Siagian', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Dame Magdalena Simanjuntak', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Siti Masmelan', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Rita Herawaty BR. Bangun', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Anna Verawati Sigiro', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Eka Zulfitriani', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Teresia Karolinda Siagian', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Amelia Jeihan Hasibuan', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Rohma Santi Saragih', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Sri Wardani', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Yunita', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Kristina Br. Ginting', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Teti Safrida Purba', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Adelina Octavia Sihombing', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Dwi Aryani', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Sitta Fadillah Daly', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Ayunning Tieas', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Vera Paramita', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Nastiti Athari Paramadina', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Yosephine Magdalena Sitorus', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Endang Yoanna Br Sembiring', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Anni Syahdia Nasution', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Fitriyani', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Wirda Azhar Salwa', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Sri Indriyani Siregar', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Fitria Cahyaningtyas', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Maria Kurniaty Banjarnahor', satker: 'BPS Prov. Sumatera Utara' },
+          { name: 'Wenny Sukma Nababan', satker: 'BPS Prov. Sumatera Utara' }
+        ].map(r => ({ ...r, status: 'Belum Selesai', id: `${r.satker}-${r.name}`.replace(/\s/g, '') }));
+        
+        // --- KONFIGURASI APLIKASI ---
+        const GOOGLE_FORM_URL = "https://forms.gle/p96mTANxtMrn9ohE6";
+        const GOOGLE_FORM_NAME_ENTRY_ID = "entry.YOUR_NAME_FIELD_ID_HERE";
+        const GOOGLE_SHEET_CSV_URL = "YOUR_PUBLISHED_GOOGLE_SHEET_CSV_URL_HERE";
+
+
+        let completedRespondents = new Set();
+        let currentSatker = null;
+
+        const initialMessageHTML = `
+            <div id="initial-message" class="text-center py-8 px-4">
+                <h4 class="text-2xl font-bold text-indigo-700 mb-2">Kontribusi Anda Sangat Berarti!</h4>
+                <p class="text-gray-600 max-w-2xl mx-auto mb-4">
+                    Kepada rekan-rekan pegawai BPS se-Sumatera Utara yang terpilih menjadi responden, partisipasi Anda dalam penelitian oleh Sdri. Eirene Debora Simanullang sangat kami harapkan. Mari bersama kita sukseskan penelitian ini!
+                </p>
+                <p class="text-gray-800 font-semibold mb-2">
+                    Segera isi kuesioner online melalui tautan di bawah ini.
+                </p>
+                <a href="https://forms.gle/p96mTANxtMrn9ohE6" target="_blank" class="inline-block bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 transition-colors duration-300 mb-4">
+                    Mulai Isi Kuesioner
+                </a>
+                <p class="text-sm text-red-600 font-medium">
+                    Periode pengisian: <strong>21 Juli s/d 1 Agustus 2025</strong>. Jangan sampai terlewat!
+                </p>
+                <hr class="my-6">
+                <p class="text-gray-500">
+                    Untuk melihat daftar nama responden per wilayah, silakan pilih Satuan Kerja dari menu di sebelah kiri.
+                </p>
+            </div>`;
+
+        function showHomePage() {
+            document.getElementById('respondent-list').innerHTML = initialMessageHTML;
+            document.getElementById('respondent-title').textContent = 'Selamat Datang di Dasbor Monitoring';
+            document.querySelectorAll('#satker-list li').forEach(item => item.classList.remove('active-satker'));
+            currentSatker = null;
+        }
+
+        async function fetchCompletionData() {
+            if (GOOGLE_SHEET_CSV_URL.includes("YOUR_PUBLISHED_GOOGLE_SHEET_CSV_URL_HERE")) {
+                console.warn("URL Google Sheet belum dikonfigurasi. Data status tidak akan diperbarui secara otomatis.");
+                return;
+            }
+            try {
+                const response = await fetch(`${GOOGLE_SHEET_CSV_URL}&t=${new Date().getTime()}`);
+                const csvText = await response.text();
+                const rows = csvText.split('\n').slice(1);
+                
+                const newCompletedRespondents = new Set();
+                rows.forEach(row => {
+                    const columns = row.split(',');
+                    if (columns.length > 1) {
+                        const name = columns[1].trim().replace(/"/g, '');
+                        if (name) {
+                           newCompletedRespondents.add(name);
+                        }
+                    }
+                });
+
+                if (newCompletedRespondents.size !== completedRespondents.size) {
+                    completedRespondents = newCompletedRespondents;
+                    updateAllStatuses();
+                }
+            } catch (error) {
+                console.error('Gagal mengambil data dari Google Sheet:', error);
+            }
+        }
+        
+        function updateAllStatuses() {
+            respondents.forEach(r => {
+                if (completedRespondents.has(r.name)) {
+                    r.status = 'Selesai';
+                } else {
+                    r.status = 'Belum Selesai';
+                }
+            });
+            renderDashboard();
+            if (currentSatker) {
+                displayRespondents(currentSatker);
+            }
+        }
+
+        function renderDashboard() {
+            const total = respondents.length;
+            const completed = respondents.filter(r => r.status === 'Selesai').length;
+            const notCompleted = total - completed;
+            const percentage = total > 0 ? ((completed / total) * 100).toFixed(1) : 0;
+
+            const container = document.getElementById('stats-container');
+            container.innerHTML = `
+                <div class="bg-blue-100 p-6 rounded-lg shadow">
+                    <h4 class="text-sm font-medium text-blue-800">Total Responden</h4>
+                    <p class="text-3xl font-bold text-blue-900">${total}</p>
+                </div>
+                <div onclick="showProgressModal('Selesai')" class="bg-green-100 p-6 rounded-lg shadow cursor-pointer hover:bg-green-200 transition-all duration-200">
+                    <h4 class="text-sm font-medium text-green-800">Sudah Selesai</h4>
+                    <p class="text-3xl font-bold text-green-900">${completed}</p>
+                </div>
+                <div onclick="showProgressModal('Belum Selesai')" class="bg-red-100 p-6 rounded-lg shadow cursor-pointer hover:bg-red-200 transition-all duration-200">
+                    <h4 class="text-sm font-medium text-red-800">Belum Selesai</h4>
+                    <p class="text-3xl font-bold text-red-900">${notCompleted}</p>
+                </div>
+            `;
+            
+            const mainTitle = document.getElementById('main-title');
+            mainTitle.innerHTML = `Ringkasan Progress <span class="text-lg font-normal text-gray-600">(${percentage}%)</span>`;
+        }
+
+        function populateSidebar() {
+            const satkerSet = new Set(respondents.map(r => r.satker));
+            const satkerList = [...satkerSet].sort();
+            const listElement = document.getElementById('satker-list');
+            listElement.innerHTML = '';
+
+            satkerList.forEach(satker => {
+                const li = document.createElement('li');
+                li.textContent = satker;
+                li.className = 'px-4 py-2 rounded-md cursor-pointer hover:bg-gray-100 text-gray-700';
+                li.onclick = () => {
+                    currentSatker = satker;
+                    displayRespondents(satker);
+                    document.querySelectorAll('#satker-list li').forEach(item => item.classList.remove('active-satker'));
+                    li.classList.add('active-satker');
+                };
+                listElement.appendChild(li);
+            });
+        }
+
+        function displayRespondents(satker) {
+            const filtered = respondents.filter(r => r.satker === satker);
+            const listContainer = document.getElementById('respondent-list');
+            const titleElement = document.getElementById('respondent-title');
+            
+            titleElement.textContent = `Daftar Responden: ${satker}`;
+            listContainer.innerHTML = '';
+
+            if (filtered.length === 0) {
+                listContainer.innerHTML = '<div class="text-center text-gray-500 py-8">Tidak ada responden di satuan kerja ini.</div>';
+                return;
+            }
+
+            filtered.forEach(respondent => {
+                const statusClass = respondent.status === 'Selesai' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+                const div = document.createElement('div');
+                div.className = 'flex items-center justify-between py-4';
+                div.innerHTML = `
+                    <div>
+                        <p class="font-medium text-gray-800">${respondent.name}</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full ${statusClass}">${respondent.status}</span>
+                        <button onclick="openUploadModal('${respondent.name}')" class="text-gray-500 hover:text-indigo-600" title="Isi Kuesioner">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L14.732 3.732z"></path></svg>
+                        </button>
+                    </div>
+                `;
+                listContainer.appendChild(div);
+            });
+        }
+
+        // --- MODAL FUNCTIONS ---
+
+        function openUploadModal(name) {
+            const modal = document.getElementById('upload-modal');
+            document.getElementById('modal-respondent-name').textContent = name;
+            
+            const link = document.getElementById('gform-link');
+            if (GOOGLE_FORM_NAME_ENTRY_ID.includes("YOUR_NAME_FIELD_ID_HERE")) {
+                 link.href = GOOGLE_FORM_URL;
+                 link.onclick = () => closeModal();
+            } else {
+                const prefilledUrl = `${GOOGLE_FORM_URL.split('?')[0].replace('/viewform', '/formResponse')}?&${GOOGLE_FORM_NAME_ENTRY_ID}=${encodeURIComponent(name)}`;
+                link.href = prefilledUrl;
+                link.onclick = () => closeModal();
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('upload-modal').classList.add('hidden');
+        }
+
+        function showProgressModal(status) {
+            const modal = document.getElementById('progress-modal');
+            const titleEl = document.getElementById('progress-modal-title');
+            const listEl = document.getElementById('progress-modal-list');
+
+            const filteredRespondents = respondents.filter(r => r.status === status).sort((a, b) => a.name.localeCompare(b.name));
+            const titleText = status === 'Selesai' ? 'Sudah Selesai' : 'Belum Selesai';
+            
+            titleEl.textContent = `Daftar Responden ${titleText} (${filteredRespondents.length})`;
+
+            if (filteredRespondents.length === 0) {
+                listEl.innerHTML = `<p class="text-gray-500 text-center py-4">Tidak ada responden dalam kategori ini.</p>`;
+            } else {
+                listEl.innerHTML = `
+                    <ul class="space-y-2">
+                        ${filteredRespondents.map(r => `
+                            <li class="p-3 bg-gray-50 rounded-md flex justify-between items-center text-sm">
+                                <span class="font-medium text-gray-800">${r.name}</span>
+                                <span class="text-gray-500">${r.satker}</span>
+                            </li>
+                        `).join('')}
+                    </ul>
+                `;
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeProgressModal() {
+            document.getElementById('progress-modal').classList.add('hidden');
+        }
+
+        // --- INITIALIZATION ---
+        window.onload = () => {
+            lucide.createIcons();
+            document.getElementById('home-button').addEventListener('click', showHomePage);
+            populateSidebar();
+            showHomePage();
+            
+            fetchCompletionData().then(() => {
+                renderDashboard();
+                setInterval(fetchCompletionData, 30000);
+            });
+        };
+    </script>
+</body>
+</html>
