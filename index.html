@@ -366,8 +366,7 @@
         
         // --- KONFIGURASI APLIKASI ---
         const GOOGLE_FORM_URL = "https://forms.gle/p96mTANxtMrn9ohE6";
-        const GOOGLE_FORM_NAME_ENTRY_ID = "entry.YOUR_NAME_FIELD_ID_HERE";
-        const GOOGLE_SHEET_CSV_URL = "YOUR_PUBLISHED_GOOGLE_SHEET_CSV_URL_HERE";
+        const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR3IG17ShMiW2pxhAFjN93fUKnYsclkAr9YMd3277GXrCuHvys5T5ylhmJSt5zncZQweG7Gv9t6Ydnm/pub?gid=1547363691&single=true&output=csv";
 
 
         let completedRespondents = new Set();
@@ -402,32 +401,44 @@
         }
 
         async function fetchCompletionData() {
-            if (GOOGLE_SHEET_CSV_URL.includes("YOUR_PUBLISHED_GOOGLE_SHEET_CSV_URL_HERE")) {
-                console.warn("URL Google Sheet belum dikonfigurasi. Data status tidak akan diperbarui secara otomatis.");
+            if (!GOOGLE_SHEET_CSV_URL || GOOGLE_SHEET_CSV_URL.includes("YOUR_PUBLISHED_GOOGLE_SHEET_CSV_URL_HERE")) {
+                console.warn("URL Google Sheet belum dikonfigurasi.");
+                // Tetap render dashboard dengan data awal jika URL belum ada
+                updateAllStatuses();
                 return;
             }
             try {
+                // Tambahkan parameter acak untuk mencegah browser menggunakan cache lama
                 const response = await fetch(`${GOOGLE_SHEET_CSV_URL}&t=${new Date().getTime()}`);
+                if (!response.ok) {
+                    throw new Error(`Gagal mengambil data: ${response.statusText}`);
+                }
                 const csvText = await response.text();
-                const rows = csvText.split('\n').slice(1);
+                const rows = csvText.split('\n').slice(1); // Lewati baris header
                 
                 const newCompletedRespondents = new Set();
                 rows.forEach(row => {
-                    const columns = row.split(',');
-                    if (columns.length > 1) {
-                        const name = columns[1].trim().replace(/"/g, '');
-                        if (name) {
-                           newCompletedRespondents.add(name);
+                    const columns = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
+                    for (let i = 2; i < columns.length; i++) {
+                        if (columns[i]) {
+                            const name = columns[i].trim().replace(/"/g, '');
+                            if (name) {
+                                newCompletedRespondents.add(name);
+                                break; 
+                            }
                         }
                     }
                 });
 
-                if (newCompletedRespondents.size !== completedRespondents.size) {
+                if (newCompletedRespondents.size !== completedRespondents.size || ![...newCompletedRespondents].every(name => completedRespondents.has(name))) {
                     completedRespondents = newCompletedRespondents;
                     updateAllStatuses();
                 }
+
             } catch (error) {
                 console.error('Gagal mengambil data dari Google Sheet:', error);
+                // Jika gagal, tetap tampilkan data terakhir yang valid
+                updateAllStatuses();
             }
         }
         
@@ -530,14 +541,8 @@
             document.getElementById('modal-respondent-name').textContent = name;
             
             const link = document.getElementById('gform-link');
-            if (GOOGLE_FORM_NAME_ENTRY_ID.includes("YOUR_NAME_FIELD_ID_HERE")) {
-                 link.href = GOOGLE_FORM_URL;
-                 link.onclick = () => closeModal();
-            } else {
-                const prefilledUrl = `${GOOGLE_FORM_URL.split('?')[0].replace('/viewform', '/formResponse')}?&${GOOGLE_FORM_NAME_ENTRY_ID}=${encodeURIComponent(name)}`;
-                link.href = prefilledUrl;
-                link.onclick = () => closeModal();
-            }
+            link.href = GOOGLE_FORM_URL;
+            link.onclick = () => closeModal();
 
             modal.classList.remove('hidden');
         }
@@ -586,7 +591,7 @@
             showHomePage();
             
             fetchCompletionData().then(() => {
-                renderDashboard();
+                // Initial render is done, now set interval for auto-updates
                 setInterval(fetchCompletionData, 30000);
             });
         };
